@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Notebook</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            table-layout: fixed;
+            min-width: 800px;
+            border-collapse: collapse;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+
+        td,
+        th {
+            border: 1px solid #dee2e6;
+            height: 40px;
+            text-align: center;
+            background-color: #ffffff;
+            min-width: 50px;
+        }
+
+        td:hover {
+            background-color: #e9ecef;
+        }
+
+        input {
+            width: 100%;
+            border: none;
+            outline: none;
+            text-align: center;
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            background: #e3f2fd;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+
+        #fontSize {
+            width: 50px;
+            height: 35px;
+            background-color: darkgrey;
+            color: darkgrey;
+
+        }
+
+        #textColor {
+            width: 40px;
+            height: 35px;
+            background-color: darkgrey;
+
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: row;
+                justify-content: center;
+
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            td,
+            th {
+                height: 35px;
+                min-width: 40px;
+            }
+
+            input {
+                font-size: 12px;
+                padding: 3px;
+            }
+        }
+
+        .btn-primary {
+            background-color: rgb(29, 196, 43);
+            border: #dee2e6;
+
+        }
+
+        .btn-primary:hover {
+            background-color: rgb(29, 196, 43);
+        }
+
+        .btn-secondary {
+            background-color: darkgrey;
+            border: none;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="text-center m-5 ">Excel Notebook</h1>
+
+        <!-- Toolbar -->
+        <div class="controls">
+            <label>Font Size:</label>
+            <input type="number" id="fontSize" value="14" min="8" max="30" class="bg-darkgrey text-white">
+            <label>Text Color:</label>
+            <input type="color" id="textColor">
+            <button id="boldBtn" class="btn btn-secondary">B</button>
+            <button id="italicBtn" class="btn btn-secondary">I</button>
+            <button id="underlineBtn" class="btn btn-secondary">U</button>
+            <button id="overlineBtn" class="btn btn-secondary">O</button>
+            <button id="strikeBtn" class="btn btn-secondary">S</button>
+            <button id="exportPdf" class="btn btn-primary">Export PDF</button>
+        </div>
+
+        <div class="table-container">
+            <table class="table">
+                <tbody id="excelTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const table = document.getElementById("excelTable");
+
+            let headerRow = document.createElement("tr");
+            headerRow.appendChild(document.createElement("th")); 
+
+            for (let j = 0; j < 20; j++) {
+                let th = document.createElement("th");
+                th.textContent = String.fromCharCode(65 + j);
+                headerRow.appendChild(th);
+            }
+            table.appendChild(headerRow);
+
+            let selectedCell = null;
+
+            for (let i = 0; i < 20; i++) {
+                let row = document.createElement("tr");
+
+                let rowHeader = document.createElement("th");
+                rowHeader.textContent = i + 1;
+                row.appendChild(rowHeader);
+
+                for (let j = 0; j < 20; j++) {
+                    let cell = document.createElement("td");
+                    let input = document.createElement("input");
+                    input.type = "text";
+                    input.dataset.row = i;
+                    input.dataset.col = j;
+                    input.value = localStorage.getItem(`cell-${i}-${j}`) || "";
+                    input.style.fontSize = localStorage.getItem(`style-fontSize-${i}-${j}`) || "14px";
+                    input.style.color = localStorage.getItem(`style-color-${i}-${j}`) || "#000000";
+                    input.style.fontWeight = localStorage.getItem(`style-bold-${i}-${j}`) || "normal";
+                    input.style.fontStyle = localStorage.getItem(`style-italic-${i}-${j}`) || "normal";
+                    const underline = localStorage.getItem(`style-underline-${i}-${j}`) === "underline" ? "underline" : "";
+                    const overline = localStorage.getItem(`style-overline-${i}-${j}`) === "overline" ? "overline" : "";
+                    const strike = localStorage.getItem(`style-strike-${i}-${j}`) === "line-through" ? "line-through" : "";
+
+                    input.style.textDecoration = [underline, overline, strike].filter(Boolean).join(" ");
+
+
+                    input.addEventListener("input", function () {
+                        localStorage.setItem(`cell-${i}-${j}`, this.value);
+                    });
+
+                    input.addEventListener("focus", function () {
+                        selectedCell = this;
+                    });
+
+                    cell.appendChild(input);
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            }
+
+            document.getElementById("fontSize").addEventListener("input", function () {
+                if (selectedCell) {
+                    selectedCell.style.fontSize = this.value + "px";
+                    localStorage.setItem(`style-fontSize-${selectedCell.dataset.row}-${selectedCell.dataset.col}`, this.value + "px");
+                }
+            });
+
+            document.getElementById("textColor").addEventListener("input", function () {
+                if (selectedCell) {
+                    selectedCell.style.color = this.value;
+                    localStorage.setItem(`style-color-${selectedCell.dataset.row}-${selectedCell.dataset.col}`, this.value);
+                }
+            });
+
+            document.getElementById("boldBtn").addEventListener("click", function () {
+                if (selectedCell) {
+                    selectedCell.style.fontWeight = selectedCell.style.fontWeight === "bold" ? "normal" : "bold";
+                    localStorage.setItem(`style-bold-${selectedCell.dataset.row}-${selectedCell.dataset.col}`, selectedCell.style.fontWeight);
+                }
+            });
+
+            document.getElementById("italicBtn").addEventListener("click", function () {
+                if (selectedCell) {
+                    selectedCell.style.fontStyle = selectedCell.style.fontStyle === "italic" ? "normal" : "italic";
+                    localStorage.setItem(`style-italic-${selectedCell.dataset.row}-${selectedCell.dataset.col}`, selectedCell.style.fontStyle);
+                }
+            });
+
+            document.getElementById("underlineBtn").addEventListener("click", function () {
+                if (selectedCell) {
+                    selectedCell.style.textDecoration = selectedCell.style.textDecoration === "underline" ? "none" : "underline";
+                    localStorage.setItem(`style-underline-${selectedCell.dataset.row}-${selectedCell.dataset.col}`, selectedCell.style.textDecoration);
+                }
+            });
+
+            document.getElementById("overlineBtn").addEventListener("click", function () {
+                if (selectedCell) {
+                    selectedCell.style.textDecoration = selectedCell.style.textDecoration === "overline" ? "none" : "overline";
+                    localStorage.setItem(`style-overline-${selectedCell.dataset.row}-${selectedCell.dataset.col}`, selectedCell.style.textDecoration);
+                }
+            });
+
+            document.getElementById("strikeBtn").addEventListener("click", function () {
+                if (selectedCell) {
+                    selectedCell.style.textDecoration = selectedCell.style.textDecoration === "line-through" ? "none" : "line-through";
+                    localStorage.setItem(`style-strike-${selectedCell.dataset.row}-${selectedCell.dataset.col}`, selectedCell.style.textDecoration);
+                }
+            });
+
+            document.getElementById("exportPdf").addEventListener("click", function () {
+                const { jsPDF } = window.jspdf;
+                let doc = new jsPDF();
+                let yPos = 10;
+                for (let i = 0; i < 20; i++) {
+                    for (let j = 0; j < 20; j++) {
+                        let cellValue = localStorage.getItem(`cell-${i}-${j}`) || "";
+                        let fontSize = parseInt(localStorage.getItem(`style-fontSize-${i}-${j}`)) || 14;
+                        let color = localStorage.getItem(`style-color-${i}-${j}`) || "#000000";
+                        let textDecoration = localStorage.getItem(`style-textDecoration-${i}-${j}`) || "none";
+
+                        doc.setFontSize(fontSize);
+                        doc.setTextColor(color);
+
+                        if (textDecoration.includes("underline")) {
+                            doc.text(cellValue, 10 + j * 20, yPos, { underline: true });
+                        } else if (textDecoration.includes("line-through")) {
+                            doc.text(cellValue, 10 + j * 20, yPos, { strikeout: true });
+                        } else {
+                            doc.text(cellValue, 10 + j * 20, yPos);
+                        }
+                    }
+                    yPos += 10;
+                }
+                doc.save("ExcelNotebook.pdf");
+            });
+        });
+    </script>
+</body>
+
+</html>
